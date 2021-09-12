@@ -21,13 +21,15 @@ pub struct Player {
 	sheet: Sheet,
 	timer: RefCell<Ticker>,
 	index: usize,
+	chunks: usize,
 	tpb: u16,
 }
 
 impl Player {
-	pub fn new(con: MidiOutputConnection, sheet: Sheet, tpb: u16) -> Self {
+	pub fn new(con: MidiOutputConnection, sheet: Sheet, tpb: u16, chunks: usize) -> Self {
 		let timer = RefCell::new(Ticker::new(tpb));
 		Self {
+			chunks,
 			con: RefCell::new(con),
 			sheet,
 			index: 0,
@@ -40,9 +42,12 @@ impl Player {
 		if self.index >= self.sheet.len() {
 			return None;
 		}
-		let end = self.sheet.len().min(self.index + self.tpb as usize);
+		let end = self
+			.sheet
+			.len()
+			.min(self.index + self.tpb as usize * self.chunks);
 		let slice = &self.sheet[self.index..end];
-		self.index += self.tpb as usize;
+		self.index += self.tpb as usize * self.chunks;
 		self.play(slice);
 
 		Some(slice.iter().map(notes_moment).flatten().collect())
@@ -50,7 +55,7 @@ impl Player {
 
 	pub fn play_prev(&mut self) -> Option<Notes> {
 		let end = self.index;
-		self.index = self.index.checked_sub(self.tpb as usize)?;
+		self.index = self.index.checked_sub(self.tpb as usize * self.chunks)?;
 
 		let slice = &self.sheet[self.index..end];
 		self.play(slice);
@@ -58,6 +63,7 @@ impl Player {
 	}
 
 	fn play(&self, part: &[Moment]) {
+		self.silence();
 		let mut buf = Vec::new();
 		let mut empty_counter = 0_u32;
 		for moment in part {
@@ -83,7 +89,7 @@ impl Player {
 	}
 
 	pub fn replay(&mut self) {
-		let start = match self.index.checked_sub(self.tpb as usize) {
+		let start = match self.index.checked_sub(self.tpb as usize * self.chunks) {
 			None => return,
 			Some(n) => n,
 		};
@@ -95,5 +101,9 @@ impl Player {
 	pub fn rewind_start(&mut self) {
 		self.index = 0;
 		self.timer.replace(Ticker::new(self.tpb));
+	}
+
+	pub fn silence(&self) {
+		let _ = self.con.borrow_mut().send(&[0xb0, 123]);
 	}
 }

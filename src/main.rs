@@ -86,7 +86,8 @@ fn parse_args() -> Result<Player, Box<dyn Error>> {
 		std::process::exit(0);
 	}
 
-	let data = m.value_of("file").map(|s| fs::read(s)).unwrap()?;
+	let data = m.value_of("file").map(fs::read).unwrap()?;
+	let chunks = m.value_of("chunks").unwrap().parse::<usize>()?;
 	let device_no = m.value_of("device").unwrap().parse::<usize>()?;
 	let con = get_midi(device_no)?;
 
@@ -102,11 +103,11 @@ fn parse_args() -> Result<Player, Box<dyn Error>> {
 			let meta = Sheet::single(&tracks[0]);
 			let mut sheet = choose_track(&tracks[0..]);
 			sheet.merge_with(meta);
-			Player::new(con, sheet, tpb)
+			Player::new(con, sheet, tpb, chunks)
 		}
 		_ => {
 			let sheet = Sheet::sequential(&tracks);
-			Player::new(con, sheet, tpb)
+			Player::new(con, sheet, tpb, chunks)
 		}
 	})
 }
@@ -123,6 +124,7 @@ fn run(player: &mut Player) {
 		};
 
 		match k.code {
+			KeyCode::Char(' ') => player.silence(),
 			KeyCode::Char('r') => player.replay(),
 			KeyCode::Char('q') => break,
 			KeyCode::Char('s') => player.rewind_start(),
@@ -154,7 +156,7 @@ fn run(player: &mut Player) {
 		};
 	}
 
-	disable_raw_mode();
+	let _ = disable_raw_mode();
 }
 
 fn choose_track(tracks: &[Vec<TrackEvent<'_>>]) -> Sheet {
@@ -169,7 +171,7 @@ fn choose_track(tracks: &[Vec<TrackEvent<'_>>]) -> Sheet {
 					_ => None,
 				})
 				.next()
-				.unwrap_or_else(|| std::borrow::Cow::Borrowed("unnamed track"))
+				.unwrap_or(std::borrow::Cow::Borrowed("unnamed track"))
 		})
 		.collect::<Vec<_>>();
 
