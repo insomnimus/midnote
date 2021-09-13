@@ -6,8 +6,8 @@ use clap::{
 };
 
 pub fn new() -> App<'static> {
-	let app = App::new("tabs")
-		.about("Page through the nodes in a midi file.")
+	let app = App::new("midnote")
+		.about("View and play notes in a MIDI track.")
 		.setting(AppSettings::UnifiedHelpMessage)
 		.version(crate_version!());
 

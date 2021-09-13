@@ -1,4 +1,9 @@
 use std::{
+	fmt::Write as _Write,
+	io::{
+		stdout,
+		Write,
+	},
 	sync::mpsc::{
 		self,
 		Receiver,
@@ -12,12 +17,20 @@ use crossterm::{
 		Event,
 		KeyCode,
 	},
+	style::{
+		Attribute,
+		Color,
+		Stylize,
+	},
 	terminal::{
 		disable_raw_mode,
 		enable_raw_mode,
+		Clear,
+		ClearType,
 	},
+	ExecutableCommand,
 };
-use tabs::{
+use midnote::{
 	init,
 	player::Player,
 	Command,
@@ -25,11 +38,14 @@ use tabs::{
 	Response,
 };
 
+const CLEAR: Clear = Clear(ClearType::All);
+
 fn run((player, response): (Player, Receiver<Response>)) {
 	let (commands, commands_recv) = mpsc::channel();
 	thread::spawn(move || {
 		player.start(commands_recv);
 	});
+	start_display(response);
 
 	loop {
 		let k = match event::read() {
@@ -47,24 +63,61 @@ fn run((player, response): (Player, Receiver<Response>)) {
 			_ => Ok(()),
 		}
 		.unwrap();
-
-		for resp in response.try_iter() {
-			match resp {
-				Response::StartOfTrack => println!("start of track"),
-				Response::EndOfTrack => println!("end of track"),
-				Response::Notes(notes) => print_notes(&notes),
-			};
-		}
 	}
 }
 
 fn print_notes(notes: &[Vec<Note>]) {
-	println!("-");
-	let notes = notes.iter().map(|ns| ns.iter().map(|n| n.to_string()));
-	for ns in notes {
-		let ns = ns.collect::<Vec<_>>();
-		println!("{}", ns.join(", "));
+	let mut stdout = stdout();
+	let _ = stdout.execute(CLEAR);
+	if notes.is_empty() {
+		let s = "---"
+			.with(Color::Grey)
+			.attribute(Attribute::Bold)
+			.on(Color::Black);
+		writeln!(&mut stdout, "{}", s).unwrap();
+		let _ = stdout.flush();
+		return;
 	}
+	let mut buf = String::new();
+
+	for ns in notes {
+		for (i, n) in ns.iter().enumerate() {
+			if i > 0 {
+				buf.push_str(", ");
+			}
+			write!(&mut buf, "{}", n).unwrap();
+		}
+		buf.push('\n');
+	}
+
+	let s = buf
+		.with(Color::Cyan)
+		.attribute(Attribute::Bold)
+		.on(Color::Black);
+	write!(&mut stdout, "{}", s).unwrap();
+
+	let _ = stdout.flush();
+}
+
+fn print_clear(s: &str) {
+	let mut stdout = stdout();
+	let _ = stdout.execute(CLEAR);
+
+	let s = s.on(Color::Black).with(Color::Yellow);
+	writeln!(&mut stdout, "{}", s).unwrap();
+	let _ = stdout.flush();
+}
+
+fn start_display(response: Receiver<Response>) {
+	thread::spawn(move || {
+		for resp in response {
+			match resp {
+				Response::StartOfTrack => print_clear("Start of track."),
+				Response::EndOfTrack => print_clear("End of track."),
+				Response::Notes(notes) => print_notes(&notes),
+			};
+		}
+	});
 }
 
 fn main() {

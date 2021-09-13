@@ -342,6 +342,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "midnote"
+version = "0.4.2"
+dependencies = [
+ "clap",
+ "crossterm",
+ "midir",
+ "midly",
+ "nodi",
+]
+
+[[package]]
 name = "mio"
 version = "0.7.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -575,17 +586,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
-]
-
-[[package]]
-name = "tabs"
-version = "0.3.0"
-dependencies = [
- "clap",
- "crossterm",
- "midir",
- "midly",
- "nodi",
 ]
 
 [[package]]
