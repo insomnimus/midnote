@@ -1,4 +1,17 @@
-use std::cell::RefCell;
+use std::{
+	ops::Range,
+	sync::{
+		mpsc::{
+			self,
+			Receiver,
+			Sender,
+			SyncSender,
+		},
+		Arc,
+		Mutex,
+	},
+	thread,
+};
 
 use midir::MidiOutputConnection;
 use nodi::{
@@ -10,100 +23,180 @@ use nodi::{
 };
 
 use crate::{
-	notes_moment,
-	Note,
+	note::moment_notes,
+	Command,
+	Response,
 };
 
-pub type Notes = Vec<Vec<Note>>;
-
 pub struct Player {
-	con: RefCell<MidiOutputConnection>,
-	sheet: Sheet,
-	timer: RefCell<Ticker>,
+	output: Sender<Response>,
+	con: Arc<Mutex<MidiOutputConnection>>,
 	index: usize,
+	tpb: usize,
+	timer: Arc<Mutex<Ticker>>,
 	chunks: usize,
-	tpb: u16,
+	last_forward: bool,
+	sheet: Arc<Sheet>,
+	track_len: usize,
 }
 
 impl Player {
-	pub fn new(con: MidiOutputConnection, sheet: Sheet, tpb: u16, chunks: usize) -> Self {
-		let timer = RefCell::new(Ticker::new(tpb));
+	pub fn new(
+		con: MidiOutputConnection,
+		output: Sender<Response>,
+		sheet: Sheet,
+		tpb: usize,
+		chunks: usize,
+	) -> Self {
+		let timer = Arc::new(Mutex::new(Ticker::new(tpb as u16)));
+		let con = Arc::new(Mutex::new(con));
+		let track_len = sheet.len();
+		let sheet = Arc::new(sheet);
 		Self {
+			track_len,
 			chunks,
-			con: RefCell::new(con),
-			sheet,
+			con,
+			output,
+			timer,
 			index: 0,
 			tpb,
-			timer,
+			sheet,
+			last_forward: true,
 		}
 	}
 
-	pub fn play_next(&mut self) -> Option<Notes> {
-		if self.index >= self.sheet.len() {
-			return None;
-		}
-		let end = self
-			.sheet
-			.len()
-			.min(self.index + self.tpb as usize * self.chunks);
-		let slice = &self.sheet[self.index..end];
-		self.index += self.tpb as usize * self.chunks;
-		self.play(slice);
-
-		Some(slice.iter().map(notes_moment).flatten().collect())
-	}
-
-	pub fn play_prev(&mut self) -> Option<Notes> {
-		let end = self.index;
-		self.index = self.index.checked_sub(self.tpb as usize * self.chunks)?;
-
-		let slice = &self.sheet[self.index..end];
-		self.play(slice);
-		Some(slice.iter().map(notes_moment).flatten().collect())
-	}
-
-	fn play(&self, part: &[Moment]) {
-		self.silence();
-		let mut buf = Vec::new();
-		let mut empty_counter = 0_u32;
-		for moment in part {
-			match moment {
-				Moment::Empty => empty_counter += 1,
-				Moment::Events(events) => {
-					self.timer.borrow().sleep(empty_counter);
-					empty_counter = 0;
-					for event in events {
-						match event {
-							Event::Tempo(val) => self.timer.borrow_mut().change_tempo(*val),
-							Event::Midi(msg) => {
-								buf.clear();
-								let _ = msg.write(&mut buf);
-								let _ = self.con.borrow_mut().send(&buf);
-							}
-							_ => (),
-						};
+	pub fn start(mut self, commands: Receiver<Command>) {
+		let mut last_sender: Option<SyncSender<_>> = None;
+		let mut range = 0..0;
+		for c in &commands {
+			if let Some(ch) = &last_sender {
+				ch.send(true).ok();
+			}
+			let (cancel_send, cancel) = mpsc::sync_channel(0);
+			last_sender = Some(cancel_send);
+			match c {
+				Command::Next => {
+					if let Some(r) = self.play_next(cancel) {
+						range = r;
+					} else {
+						self.output.send(Response::EndOfTrack).unwrap();
 					}
 				}
-			}
+				Command::Prev => {
+					if let Some(r) = self.play_prev(cancel) {
+						range = r;
+					} else {
+						self.output.send(Response::StartOfTrack).unwrap();
+					}
+				}
+				Command::Replay if range != (0..0) => self.play(range.clone(), cancel),
+				Command::Replay => (),
+				Command::Silence => self.silence(),
+				Command::RewindStart => {
+					self.rewind_start();
+					range = 0..0;
+				}
+			};
 		}
 	}
 
-	pub fn replay(&mut self) {
-		let start = match self.index.checked_sub(self.tpb as usize * self.chunks) {
-			None => return,
-			Some(n) => n,
+	fn play_next(&mut self, cancel: Receiver<bool>) -> Option<Range<usize>> {
+		if self.index >= self.track_len {
+			return None;
+		}
+		let delta = self.tpb * self.chunks;
+		let range = if self.last_forward {
+			let start = self.index;
+			self.index += delta;
+			let end = self.index.min(self.track_len);
+			start..end
+		} else if self.index + delta >= self.track_len {
+			return None;
+		} else {
+			let start = self.index + delta;
+			self.index += delta * 2;
+			let end = self.index.min(self.sheet.len());
+			start..end
 		};
 
-		let slice = &self.sheet[start..self.index];
-		self.play(slice);
+		self.last_forward = true;
+		self.play(range.clone(), cancel);
+		Some(range)
 	}
 
-	pub fn rewind_start(&mut self) {
+	fn play_prev(&mut self, cancel: Receiver<bool>) -> Option<Range<usize>> {
+		let delta = self.tpb * self.chunks;
+
+		let end = if self.last_forward {
+			let end = self.index.checked_sub(delta)?;
+			self.index = end.checked_sub(delta)?;
+			end
+		} else {
+			let end = self.index;
+			self.index = self.index.checked_sub(delta)?;
+			end
+		};
+
+		self.last_forward = false;
+		let range = self.index..end;
+		self.play(range.clone(), cancel);
+		Some(range)
+	}
+
+	fn rewind_start(&mut self) {
+		*self.timer.lock().unwrap() = Ticker::new(self.tpb as u16);
 		self.index = 0;
-		self.timer.replace(Ticker::new(self.tpb));
 	}
 
-	pub fn silence(&self) {
-		let _ = self.con.borrow_mut().send(&[0xb0, 123]);
+	fn silence(&self) {
+		let mut con = self.con.lock().unwrap();
+		let _ = con.send(&[0xb0, 123]);
+	}
+
+	fn play(&self, range: Range<usize>, cancel: Receiver<bool>) {
+		self.silence();
+		let output = self.output.clone();
+		let con = Arc::clone(&self.con);
+		let sheet = Arc::clone(&self.sheet);
+		let timer = Arc::clone(&self.timer);
+
+		thread::spawn(move || {
+			let mut buf = Vec::new();
+			let mut played_notes = Vec::new();
+			let mut empty_counter = 0_u32;
+			let mut con = con.lock().unwrap();
+			let mut timer = timer.lock().unwrap();
+			for moment in &sheet[range] {
+				if cancel.try_recv().is_ok() {
+					return;
+				}
+
+				if let Some(notes) = moment_notes(moment) {
+					played_notes.push(notes);
+				}
+
+				match moment {
+					Moment::Events(events) => {
+						timer.sleep(empty_counter);
+						empty_counter = 0;
+						for event in events {
+							match event {
+								Event::Tempo(val) => timer.change_tempo(*val),
+								Event::Midi(msg) => {
+									buf.clear();
+									let _ = msg.write(&mut buf);
+									let _ = con.send(&buf);
+								}
+								_ => (),
+							};
+						}
+					}
+					Moment::Empty => empty_counter += 1,
+				};
+			}
+
+			// Send the played notes.
+			output.send(Response::Notes(played_notes)).unwrap();
+		});
 	}
 }
