@@ -11,16 +11,6 @@ pub fn new() -> App<'static> {
 		.setting(AppSettings::UnifiedHelpMessage)
 		.version(crate_version!());
 
-	let chunks = Arg::new("chunks")
-		.short('n')
-		.long("chunks")
-		.about("Chunks per page.")
-		.default_value("1")
-		.validator(|s| match s.parse::<usize>() {
-			Err(_) | Ok(0) => Err(String::from("the value must be a positive integer")),
-			_ => Ok(()),
-		});
-
 	let list = Arg::new("list")
 		.short('l')
 		.long("list")
@@ -41,5 +31,5 @@ pub fn new() -> App<'static> {
 				.map_err(|_| String::from("the value must be a non-negative integer"))
 		});
 
-	app.arg(chunks).arg(list).arg(device).arg(file)
+	app.arg(list).arg(device).arg(file)
 }

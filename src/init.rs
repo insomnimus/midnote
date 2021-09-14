@@ -70,7 +70,6 @@ pub fn parse_args() -> Result<(Player, Receiver<Response>), Box<dyn Error>> {
 	}
 
 	let data = m.value_of("file").map(fs::read).unwrap()?;
-	let chunks = m.value_of("chunks").unwrap().parse::<usize>()?;
 	let device_no = m.value_of("device").unwrap().parse::<usize>()?;
 	let con = get_midi(device_no)?;
 
@@ -93,7 +92,7 @@ pub fn parse_args() -> Result<(Player, Receiver<Response>), Box<dyn Error>> {
 		_ => Sheet::sequential(&tracks),
 	};
 
-	let player = Player::new(con, sender, sheet, tpb as usize, chunks);
+	let player = Player::new(con, sender, sheet.into_bars(tpb).collect(), tpb);
 
 	Ok((player, receiver))
 }

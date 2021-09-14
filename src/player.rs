@@ -1,5 +1,4 @@
 use std::{
-	ops::Range,
 	sync::{
 		mpsc::{
 			self,
@@ -17,7 +16,6 @@ use midir::MidiOutputConnection;
 use nodi::{
 	Event,
 	Moment,
-	Sheet,
 	Ticker,
 	Timer,
 };
@@ -28,46 +26,40 @@ use crate::{
 	Response,
 };
 
+type Bars = Vec<Vec<Moment>>;
+
 pub struct Player {
 	output: Sender<Response>,
 	con: Arc<Mutex<MidiOutputConnection>>,
 	index: usize,
-	tpb: usize,
+	tpb: u16,
 	timer: Arc<Mutex<Ticker>>,
-	chunks: usize,
 	last_forward: bool,
-	sheet: Arc<Sheet>,
-	track_len: usize,
+	bars: Arc<Bars>,
+	n_bars: usize,
 }
 
 impl Player {
-	pub fn new(
-		con: MidiOutputConnection,
-		output: Sender<Response>,
-		sheet: Sheet,
-		tpb: usize,
-		chunks: usize,
-	) -> Self {
+	pub fn new(con: MidiOutputConnection, output: Sender<Response>, bars: Bars, tpb: u16) -> Self {
 		let timer = Arc::new(Mutex::new(Ticker::new(tpb as u16)));
 		let con = Arc::new(Mutex::new(con));
-		let track_len = sheet.len();
-		let sheet = Arc::new(sheet);
+		let n_bars = bars.len();
+		let bars = Arc::new(bars);
 		Self {
-			track_len,
-			chunks,
+			n_bars,
 			con,
 			output,
 			timer,
 			index: 0,
 			tpb,
-			sheet,
+			bars,
 			last_forward: true,
 		}
 	}
 
 	pub fn start(mut self, commands: Receiver<Command>) {
 		let mut last_sender: Option<SyncSender<_>> = None;
-		let mut range = 0..0;
+		let mut last_played = 0_usize;
 		for c in &commands {
 			if let Some(ch) = &last_sender {
 				ch.send(true).ok();
@@ -76,76 +68,61 @@ impl Player {
 			last_sender = Some(cancel_send);
 			match c {
 				Command::Next => {
-					if let Some(r) = self.play_next(cancel) {
-						range = r;
+					if let Some(n) = self.play_next(cancel) {
+						last_played = n;
 					} else {
 						self.output.send(Response::EndOfTrack).unwrap();
 					}
 				}
 				Command::Prev => {
-					if let Some(r) = self.play_prev(cancel) {
-						range = r;
+					if let Some(n) = self.play_prev(cancel) {
+						last_played = n;
 					} else {
 						self.output.send(Response::StartOfTrack).unwrap();
 					}
 				}
-				Command::Replay if range != (0..0) => self.play(range.clone(), cancel),
-				Command::Replay => (),
+				Command::Replay => self.play(last_played, cancel),
 				Command::Silence => self.silence(),
 				Command::RewindStart => {
 					self.rewind_start();
-					range = 0..0;
+					last_played = 0;
 				}
 			};
 		}
 	}
 
-	fn play_next(&mut self, cancel: Receiver<bool>) -> Option<Range<usize>> {
-		if self.index >= self.track_len {
+	fn play_next(&mut self, cancel: Receiver<bool>) -> Option<usize> {
+		if self.index >= self.n_bars || (self.last_forward && self.index + 1 > self.n_bars) {
 			return None;
 		}
-		let delta = self.tpb * self.chunks;
-		let range = if self.last_forward {
-			let start = self.index;
-			self.index += delta;
-			let end = self.index.min(self.track_len);
-			start..end
-		} else if self.index + delta >= self.track_len {
-			return None;
+
+		if self.last_forward {
+			self.index += 1;
 		} else {
-			let start = self.index + delta;
-			self.index += delta * 2;
-			let end = self.index.min(self.sheet.len());
-			start..end
-		};
+			self.index += 2;
+		}
 
 		self.last_forward = true;
-		self.play(range.clone(), cancel);
-		Some(range)
+		self.play(self.index - 1, cancel);
+		Some(self.index - 1)
 	}
 
-	fn play_prev(&mut self, cancel: Receiver<bool>) -> Option<Range<usize>> {
-		let delta = self.tpb * self.chunks;
-
-		let end = if self.last_forward {
-			let end = self.index.checked_sub(delta)?;
-			self.index = end.checked_sub(delta)?;
-			end
+	fn play_prev(&mut self, cancel: Receiver<bool>) -> Option<usize> {
+		if self.last_forward {
+			self.index = self.index.checked_sub(2)?;
 		} else {
-			let end = self.index;
-			self.index = self.index.checked_sub(delta)?;
-			end
-		};
+			self.index = self.index.checked_sub(1)?;
+		}
 
 		self.last_forward = false;
-		let range = self.index..end;
-		self.play(range.clone(), cancel);
-		Some(range)
+		self.play(self.index, cancel);
+		Some(self.index)
 	}
 
 	fn rewind_start(&mut self) {
 		*self.timer.lock().unwrap() = Ticker::new(self.tpb as u16);
 		self.index = 0;
+		self.last_forward = true;
 	}
 
 	fn silence(&self) {
@@ -153,11 +130,11 @@ impl Player {
 		let _ = con.send(&[0xb0, 120]);
 	}
 
-	fn play(&self, range: Range<usize>, cancel: Receiver<bool>) {
+	fn play(&self, n: usize, cancel: Receiver<bool>) {
 		self.silence();
 		let output = self.output.clone();
 		let con = Arc::clone(&self.con);
-		let sheet = Arc::clone(&self.sheet);
+		let bars = Arc::clone(&self.bars);
 		let timer = Arc::clone(&self.timer);
 
 		thread::spawn(move || {
@@ -167,7 +144,7 @@ impl Player {
 			let mut con = con.lock().unwrap();
 			let mut timer = timer.lock().unwrap();
 			let mut played_notes = Vec::new();
-			let slice = trim_moments(&sheet[range]);
+			let slice = trim_moments(&bars[n]);
 
 			for moment in slice {
 				if cancel.try_recv().is_ok() {
@@ -197,6 +174,7 @@ impl Player {
 					Moment::Empty => empty_counter += 1,
 				};
 			}
+
 			output.send(Response::Notes(played_notes)).unwrap();
 		});
 	}
