@@ -150,7 +150,7 @@ impl Player {
 
 	fn silence(&self) {
 		let mut con = self.con.lock().unwrap();
-		let _ = con.send(&[0xb0, 123]);
+		let _ = con.send(&[0xb0, 120]);
 	}
 
 	fn play(&self, range: Range<usize>, cancel: Receiver<bool>) {
@@ -167,8 +167,8 @@ impl Player {
 			let mut con = con.lock().unwrap();
 			let mut timer = timer.lock().unwrap();
 			let mut played_notes = Vec::new();
-	let slice = trim_moments(&sheet[range]);
-	
+			let slice = trim_moments(&sheet[range]);
+
 			for moment in slice {
 				if cancel.try_recv().is_ok() {
 					return;
