@@ -162,11 +162,14 @@ impl Player {
 
 		thread::spawn(move || {
 			let mut buf = Vec::new();
-			let mut played_notes = Vec::new();
+
 			let mut empty_counter = 0_u32;
 			let mut con = con.lock().unwrap();
 			let mut timer = timer.lock().unwrap();
-			for moment in &sheet[range] {
+			let mut played_notes = Vec::new();
+	let slice = trim_moments(&sheet[range]);
+	
+			for moment in slice {
 				if cancel.try_recv().is_ok() {
 					return;
 				}
@@ -194,9 +197,14 @@ impl Player {
 					Moment::Empty => empty_counter += 1,
 				};
 			}
-
-			// Send the played notes.
 			output.send(Response::Notes(played_notes)).unwrap();
 		});
 	}
+}
+
+fn trim_moments(slice: &[Moment]) -> &[Moment] {
+	let start = slice.iter().take_while(|m| m.is_empty()).count();
+	let slice = &slice[start..];
+	let end = slice.iter().rev().take_while(|m| m.is_empty()).count();
+	&slice[..(slice.len() - end)]
 }
