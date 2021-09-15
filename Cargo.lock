@@ -389,9 +389,9 @@ dependencies = [
 
 [[package]]
 name = "nodi"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fce1bf3158897b76b50017161ef3b0cb59cd73b688a8f8d0849aa6b8a4c1273"
+checksum = "e5d358e598cca7476bb56b6825fcca76784d39cb9e3605240dfa3c7aad06d889"
 dependencies = [
  "log",
  "midly",

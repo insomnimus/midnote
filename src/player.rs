@@ -143,16 +143,18 @@ impl Player {
 			let mut empty_counter = 0_u32;
 			let mut con = con.lock().unwrap();
 			let mut timer = timer.lock().unwrap();
-			let mut played_notes = Vec::new();
+			// let mut played_notes = Vec::new();
 			let slice = trim_moments(&bars[n]);
+			let notes = slice
+				.iter()
+				.map(|m| moment_notes(m))
+				.flatten()
+				.collect::<Vec<_>>();
+			output.send(Response::Notes(notes)).unwrap();
 
 			for moment in slice {
 				if cancel.try_recv().is_ok() {
 					return;
-				}
-
-				if let Some(notes) = moment_notes(moment) {
-					played_notes.push(notes);
 				}
 
 				match moment {
@@ -175,7 +177,7 @@ impl Player {
 				};
 			}
 
-			output.send(Response::Notes(played_notes)).unwrap();
+			// output.send(Response::Notes(played_notes)).unwrap();
 		});
 	}
 }

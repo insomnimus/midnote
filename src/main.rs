@@ -9,6 +9,7 @@ use std::{
 		Receiver,
 	},
 	thread,
+	time::Duration,
 };
 
 use crossterm::{
@@ -114,7 +115,10 @@ fn start_display(response: Receiver<Response>) {
 			match resp {
 				Response::StartOfTrack => print_clear("Start of track."),
 				Response::EndOfTrack => print_clear("End of track."),
-				Response::Notes(notes) => print_notes(&notes),
+				Response::Notes(notes) => {
+					thread::sleep(Duration::from_millis(50));
+					print_notes(&notes);
+				}
 			};
 		}
 	});
