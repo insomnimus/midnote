@@ -1,4 +1,5 @@
 mod app;
+pub mod config;
 pub mod init;
 mod note;
 pub mod player;

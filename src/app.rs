@@ -11,6 +11,17 @@ pub fn new() -> App<'static> {
 		.setting(AppSettings::UnifiedHelpMessage)
 		.version(crate_version!());
 
+	let config = Arg::new("config")
+		.short('c')
+		.long("config")
+		.about("Path of a config file.")
+		.takes_value(true);
+
+	let no_color = Arg::new("no-color")
+		.short('C')
+		.long("no-color")
+		.about("Do not use colored output.");
+
 	let list = Arg::new("list")
 		.short('l')
 		.long("list")
@@ -31,5 +42,9 @@ pub fn new() -> App<'static> {
 				.map_err(|_| String::from("the value must be a non-negative integer"))
 		});
 
-	app.arg(list).arg(device).arg(file)
+	app.arg(no_color)
+		.arg(config)
+		.arg(list)
+		.arg(device)
+		.arg(file)
 }
