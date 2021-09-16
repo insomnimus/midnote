@@ -1,17 +1,11 @@
 use std::{
+	borrow::Cow,
 	error::Error,
 	fmt,
 	fs,
 };
 
-use crossterm::{
-	event::KeyCode,
-	style::{
-		Attribute,
-		Color,
-		Stylize,
-	},
-};
+use crossterm::event::KeyCode;
 use serde::{
 	Deserialize,
 	Serialize,
@@ -59,55 +53,47 @@ impl Default for Config {
 	}
 }
 
-impl fmt::Display for Config {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		const W: usize = 7;
-
-		if self.colors {
-			let mut format = |name: &str, val: KeyCode| -> fmt::Result {
-				let val = key_string(val);
-				let mut s = format!("{s:w$}", s = name, w = W);
-				s = format!(
-					"{} | {}",
-					s.with(Color::Yellow).attribute(Attribute::Bold),
-					val.with(Color::Grey),
-				);
-				writeln!(f, "{}", s.on(Color::Black))
-			};
-			format("next", self.keys.next)?;
-			format("prev", self.keys.prev)?;
-			format("replay", self.keys.replay)?;
-			format("silence", self.keys.silence)?;
-			format("rewind", self.keys.rewind)?;
-			format("help", self.keys.help)?;
-			format("exit", self.keys.exit)
-		} else {
-			let mut format = |name: &str, val: KeyCode| -> fmt::Result {
-				let val = key_string(val);
-				writeln!(f, "{s:w$} | {v:}", w = W, s = name, v = val)
-			};
-			format("next", self.keys.next)?;
-			format("prev", self.keys.prev)?;
-			format("replay", self.keys.replay)?;
-			format("silence", self.keys.silence)?;
-			format("rewind", self.keys.rewind)?;
-			format("help", self.keys.help)?;
-			format("exit", self.keys.exit)
-		}
-	}
-}
-
 impl Config {
 	pub fn read_from(p: &str) -> Result<Self, Box<dyn Error>> {
 		let data = fs::read_to_string(p)?;
-		let c: Self = toml::from_str(&data)?;
+		let c: Self = serde_json::from_str(&data)?;
 		Ok(c)
 	}
 }
 
-fn key_string(k: KeyCode) -> String {
+impl fmt::Display for Keys {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let keys = &[
+			("next", self.next),
+			("previous", self.prev),
+			("replay", self.replay),
+			("rewind", self.rewind),
+			("silence", self.silence),
+			("help", self.help),
+			("exit", self.exit),
+		];
+
+		let w = keys.iter().map(|x| x.0.len()).max().unwrap();
+
+		for (i, (name, key)) in keys.iter().enumerate() {
+			if i > 0 {
+				f.write_str("\n")?;
+			}
+			write!(
+				f,
+				"{name:w$} | {key}",
+				name = name,
+				w = w,
+				key = key_string(*key)
+			)?;
+		}
+		Ok(())
+	}
+}
+
+fn key_string(k: KeyCode) -> Cow<'static, str> {
 	type K = KeyCode;
-	match k {
+	Cow::Borrowed(match k {
 		K::Null => "null",
 		K::BackTab => "backtab",
 		K::Backspace => "backspace",
@@ -124,8 +110,7 @@ fn key_string(k: KeyCode) -> String {
 		K::PageDown => "pagedown",
 		K::PageUp => "pageup",
 		K::Tab => "tab",
-		K::Char(c) => return c.to_string(),
-		K::F(n) => return format!("F{}", n),
-	}
-	.to_string()
+		K::Char(c) => return Cow::Owned(format!("'{}'", c)),
+		K::F(n) => return Cow::Owned(format!("F{}", n)),
+	})
 }

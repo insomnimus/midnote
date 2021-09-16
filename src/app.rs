@@ -5,16 +5,20 @@ use clap::{
 	Arg,
 };
 
+const FOOTER: &str =
+	"For the configuration file syntax, please visit https://github.com/insomnimus/midnote";
+
 pub fn new() -> App<'static> {
 	let app = App::new("midnote")
 		.about("View and play notes in a MIDI track.")
+		.after_long_help(FOOTER)
 		.setting(AppSettings::UnifiedHelpMessage)
 		.version(crate_version!());
 
 	let config = Arg::new("config")
 		.short('c')
 		.long("config")
-		.about("Path of a config file.")
+		.about("Path of a config file (*.json).")
 		.takes_value(true);
 
 	let no_color = Arg::new("no-color")

@@ -127,6 +127,7 @@ impl Player {
 
 	fn silence(&self) {
 		let mut con = self.con.lock().unwrap();
+		let _ = con.send(&[0xb0, 123]);
 		let _ = con.send(&[0xb0, 120]);
 	}
 

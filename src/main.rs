@@ -72,7 +72,7 @@ fn run(
 		} else if k == keys.exit {
 			break;
 		} else if k == keys.help {
-			print_clear(&config.to_string(), false);
+			print_clear(&keys.to_string(), false);
 			continue;
 		} else {
 			continue;
