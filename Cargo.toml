@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 clap = "3.0.0-beta.4"
-crossterm = { version = "0.21.0", features = [ "serde" ] }
+crossterm = { version = "0.21.0", features = ["serde"] }
 midir = "0.7.0"
 midly = "0.5.2"
 nodi = "0.6.1"
