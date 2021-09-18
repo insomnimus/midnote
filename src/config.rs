@@ -11,6 +11,8 @@ use serde::{
 	Serialize,
 };
 
+use crate::Command;
+
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -116,4 +118,24 @@ fn key_string(k: KeyCode) -> Cow<'static, str> {
 		K::Char(c) => return Cow::Owned(format!("'{}'", c)),
 		K::F(n) => return Cow::Owned(format!("F{}", n)),
 	})
+}
+
+impl Keys {
+	pub fn command(&self, k: KeyCode) -> Option<Command> {
+		Some(if k == self.next {
+			Command::Next
+		} else if k == self.prev {
+			Command::Prev
+		} else if k == self.replay {
+			Command::Replay
+		} else if k == self.silence {
+			Command::Silence
+		} else if k == self.solo {
+			Command::Solo
+		} else if k == self.rewind {
+			Command::RewindStart
+		} else {
+			return None;
+		})
+	}
 }

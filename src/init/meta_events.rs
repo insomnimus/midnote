@@ -10,10 +10,7 @@ pub fn extract_meta_events(sheet: &Sheet) -> Sheet {
 		match m {
 			Moment::Empty => {}
 			Moment::Events(events) => {
-				events.retain(|e| match e {
-					Event::Midi { .. } => false,
-					_ => true,
-				});
+				events.retain(|e| !matches!(e, Event::Midi { .. }));
 				if events.is_empty() {
 					*m = Moment::Empty;
 				}

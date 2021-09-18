@@ -1,4 +1,5 @@
 use std::{
+	error::Error,
 	fmt::Write as _Write,
 	io::{
 		stdout,
@@ -32,7 +33,6 @@ use crossterm::{
 };
 use midnote::{
 	init::Args,
-	Command,
 	Note,
 	Response,
 };
@@ -45,7 +45,7 @@ fn run(
 		player,
 		response,
 	}: Args,
-) {
+) -> Result<(), Box<dyn Error>> {
 	let (commands, commands_recv) = mpsc::channel();
 	thread::spawn(move || {
 		player.start(commands_recv);
@@ -61,28 +61,19 @@ fn run(
 			_ => continue,
 		};
 
-		if k == keys.next {
-			commands.send(Command::Next)
-		} else if k == keys.prev {
-			commands.send(Command::Prev)
-		} else if k == keys.replay {
-			commands.send(Command::Replay)
-		} else if k == keys.silence {
-			commands.send(Command::Silence)
-		} else if k == keys.solo {
-			commands.send(Command::Solo)
-		} else if k == keys.rewind {
-			commands.send(Command::RewindStart)
-		} else if k == keys.exit {
+		if let Some(cmd) = keys.command(k) {
+			commands.send(cmd)?;
+			continue;
+		}
+
+		if k == keys.exit {
 			break;
 		} else if k == keys.help {
 			print_clear(&keys.to_string(), false);
-			continue;
-		} else {
-			continue;
 		}
-		.unwrap();
 	}
+
+	Ok(())
 }
 
 fn print_notes(notes: &[Vec<Note>], colors: bool) {
@@ -171,7 +162,10 @@ fn main() {
 		eprintln!("warning: could not enable raw mode: {}", e);
 	}
 
-	run(args);
+	if let Err(e) = run(args) {
+		eprintln!("an internal error occurred: {:?}", e);
+		std::process::exit(2);
+	}
 
 	if let Err(e) = disable_raw_mode() {
 		eprintln!("warning: could not disable raw mode: {}", e);
