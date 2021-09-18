@@ -21,12 +21,13 @@ use nodi::{
 };
 
 use crate::{
+	bar::Bar,
 	note::moment_notes,
 	Command,
 	Response,
 };
 
-type Bars = Vec<Vec<Moment>>;
+type Bars = Vec<Bar>;
 
 pub struct Player {
 	output: Sender<Response>,
@@ -35,16 +36,26 @@ pub struct Player {
 	tpb: u16,
 	timer: Arc<Mutex<Ticker>>,
 	last_forward: bool,
-	bars: Arc<Bars>,
+	all: Arc<Bars>,
+	solo: Arc<Bars>,
+	solo_on: bool,
 	n_bars: usize,
 }
 
 impl Player {
-	pub fn new(con: MidiOutputConnection, output: Sender<Response>, bars: Bars, tpb: u16) -> Self {
+	pub fn new(
+		con: MidiOutputConnection,
+		output: Sender<Response>,
+		all: Bars,
+		solo: Bars,
+		tpb: u16,
+	) -> Self {
 		let timer = Arc::new(Mutex::new(Ticker::new(tpb as u16)));
 		let con = Arc::new(Mutex::new(con));
-		let n_bars = bars.len();
-		let bars = Arc::new(bars);
+		let n_bars = all.len();
+
+		let all = Arc::new(all);
+		let solo = Arc::new(solo);
 		Self {
 			n_bars,
 			con,
@@ -52,7 +63,9 @@ impl Player {
 			timer,
 			index: 0,
 			tpb,
-			bars,
+			all,
+			solo,
+			solo_on: false,
 			last_forward: true,
 		}
 	}
@@ -87,6 +100,7 @@ impl Player {
 					self.rewind_start();
 					last_played = 0;
 				}
+				Command::Solo => self.solo_on = !self.solo_on,
 			};
 		}
 	}
@@ -133,27 +147,29 @@ impl Player {
 
 	fn play(&self, n: usize, cancel: Receiver<bool>) {
 		self.silence();
-		let output = self.output.clone();
 		let con = Arc::clone(&self.con);
-		let bars = Arc::clone(&self.bars);
-		let timer = Arc::clone(&self.timer);
+		let notes = self.solo[n]
+			.moments
+			.iter()
+			.map(|m| moment_notes(m))
+			.flatten()
+			.collect::<Vec<_>>();
+		self.output.send(Response::Notes(notes)).unwrap();
+
+		let bars = if self.solo_on {
+			Arc::clone(&self.solo)
+		} else {
+			Arc::clone(&self.all)
+		};
 
 		thread::spawn(move || {
 			let mut buf = Vec::new();
 
 			let mut empty_counter = 0_u32;
 			let mut con = con.lock().unwrap();
-			let mut timer = timer.lock().unwrap();
-			// let mut played_notes = Vec::new();
-			let slice = trim_moments(&bars[n]);
-			let notes = slice
-				.iter()
-				.map(|m| moment_notes(m))
-				.flatten()
-				.collect::<Vec<_>>();
-			output.send(Response::Notes(notes)).unwrap();
+			let mut timer = bars[n].timer;
 
-			for moment in slice {
+			for moment in bars[n].trim_moments() {
 				if cancel.try_recv().is_ok() {
 					return;
 				}
@@ -181,11 +197,4 @@ impl Player {
 			// output.send(Response::Notes(played_notes)).unwrap();
 		});
 	}
-}
-
-fn trim_moments(slice: &[Moment]) -> &[Moment] {
-	let start = slice.iter().take_while(|m| m.is_empty()).count();
-	let slice = &slice[start..];
-	let end = slice.iter().rev().take_while(|m| m.is_empty()).count();
-	&slice[..(slice.len() - end)]
 }

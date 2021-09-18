@@ -51,6 +51,8 @@ fn run(
 		player.start(commands_recv);
 	});
 	start_display(response, config.colors);
+	print_clear(&config.keys.to_string(), false);
+
 	let keys = config.keys;
 
 	loop {
@@ -67,6 +69,8 @@ fn run(
 			commands.send(Command::Replay)
 		} else if k == keys.silence {
 			commands.send(Command::Silence)
+		} else if k == keys.solo {
+			commands.send(Command::Solo)
 		} else if k == keys.rewind {
 			commands.send(Command::RewindStart)
 		} else if k == keys.exit {

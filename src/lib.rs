@@ -1,4 +1,5 @@
 mod app;
+pub(crate) mod bar;
 pub mod config;
 pub mod init;
 mod note;
@@ -16,6 +17,7 @@ pub enum Command {
 	Replay,
 	Silence,
 	RewindStart,
+	Solo,
 }
 
 pub enum Response {

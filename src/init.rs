@@ -1,4 +1,5 @@
 mod helpers;
+mod meta_events;
 
 use std::{
 	error::Error,
@@ -9,6 +10,7 @@ use std::{
 	},
 };
 
+use meta_events::extract_meta_events;
 use midly::{
 	Format,
 	Smf,
@@ -18,6 +20,7 @@ use nodi::Sheet;
 
 use crate::{
 	app,
+	bar,
 	config::Config,
 	player::Player,
 	Response,
@@ -59,17 +62,20 @@ impl Args {
 
 		let (sender, receiver) = mpsc::channel();
 
-		let sheet = match header.format {
+		let (all, sheet) = match header.format {
 			Format::Parallel => {
-				let meta = Sheet::single(&tracks[0]);
+				let all = Sheet::parallel(&tracks);
 				let mut sheet = helpers::choose_track(&tracks[0..]);
-				sheet.merge_with(meta);
-				sheet
+				sheet.merge_with(extract_meta_events(&all));
+				(all, sheet)
 			}
-			_ => Sheet::sequential(&tracks),
+			_ => {
+				let sheet = Sheet::sequential(&tracks);
+				(sheet.clone(), sheet)
+			}
 		};
 
-		let player = Player::new(con, sender, sheet.into_bars(tpb).collect(), tpb);
+		let player = Player::new(con, sender, bar::bars(all, tpb), bar::bars(sheet, tpb), tpb);
 
 		Ok(Self {
 			player,
