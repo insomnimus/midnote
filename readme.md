@@ -31,9 +31,7 @@ the rust package manager, `cargo` (`cargo` ships with the rust toolchain).
 To build the project, you only need a working rust environment and git:
 
 ```sh
-git clone git@github.com:/insomnimus/midnote
-# you can also use `git clone https://github.com/insomnimus/midnote`
-
+git clone https://github.com/insomnimus/midnote
 cd midnote
 git checkout main
 cargo install --path . --locked
