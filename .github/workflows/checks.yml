@@ -8,4 +8,4 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: main
-        uses: ./.github/actions/main-action
+        uses: ./
