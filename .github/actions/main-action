@@ -1,0 +1,5 @@
+name: main
+description: 'lint and Build the project.'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
