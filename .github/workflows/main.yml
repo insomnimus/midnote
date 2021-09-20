@@ -1,76 +1,41 @@
 {
+  "name": "All",
   "on": [
     "push",
     "pull_request"
   ],
-  "name": "All",
   "jobs": {
-    "lints": {
-      "name": "Lints",
-      "runs-on": "ubuntu-latest",
-      "steps": [
-        {
-          "name": "Checkout sources",
-          "uses": "actions/checkout@v2"
-        },
-        {
-          "name": "Install Dependencies",
-          "env": {
-            "DEBIAN_FRONTEND": "noninteractive"
-          },
-          "run": "sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential pkg-config libasound2-dev"
-        },
-        {
-          "name": "Install stable toolchain",
-          "uses": "actions-rs/toolchain@v1",
-          "with": {
-            "profile": "minimal",
-            "toolchain": "stable",
-            "override": true,
-            "components": "rustfmt, clippy"
-          }
-        },
-        {
-          "name": "Run cargo clippy",
-          "uses": "actions-rs/cargo@v1",
-          "with": {
-            "command": "clippy",
-            "args": "-- -D warnings"
-          }
-        }
-      ]
-    },
     "build": {
-      "name": "Build",
-      "runs-on": "ubuntu-latest",
+      "strategy": {
+        "matrix": {
+          "os": [
+            "macos-latest",
+            "windows-latest",
+            "ubuntu-latest"
+          ]
+        }
+      },
+      "runs-on": "${{ matrix.os }}",
       "steps": [
         {
-          "name": "Checkout sources",
           "uses": "actions/checkout@v2"
         },
         {
           "name": "Install Dependencies",
+          "if": "matrix.os == 'ubuntu-latest'",
           "env": {
             "DEBIAN_FRONTEND": "noninteractive"
           },
           "run": "sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential pkg-config libasound2-dev"
         },
         {
-          "name": "Install stable toolchain",
-          "uses": "actions-rs/toolchain@v1",
-          "with": {
-            "profile": "minimal",
-            "toolchain": "stable",
-            "override": true
-          }
+          "name": "Stable",
+          "run": "cargo test"
         },
         {
-          "name": "Run cargo build",
-          "uses": "actions-rs/cargo@v1",
-          "with": {
-            "command": "build",
-            "args": "--release --locked"
-          }
+          "name": "Clippy",
+          "if": "matrix.os == 'ubuntu-latest'",
+          "run": "rustup component add clippy\ncargo clippy --all-targets\n"
         }
       ]
     }
