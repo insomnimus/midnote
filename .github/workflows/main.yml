@@ -1,5 +1,5 @@
 {
-  "name": "All",
+  "name": "All-Tests",
   "on": [
     "push",
     "pull_request"
@@ -9,7 +9,7 @@
       "strategy": {
         "matrix": {
           "os": [
-            "macos-latest",
+            "macos-11",
             "windows-latest",
             "ubuntu-latest"
           ]
