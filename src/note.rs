@@ -1,10 +1,7 @@
 use std::fmt;
 
 use midly::MidiMessage;
-use nodi::{
-	Event,
-	Moment,
-};
+use nodi::{Event, Moment};
 
 pub const NOTES: [&str; 12] = [
 	"C", "C#", "D", "E♭", "E", "F", "F#", "G", "A♭", "A", "B♭", "B",

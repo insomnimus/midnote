@@ -5,10 +5,7 @@ pub mod init;
 mod note;
 pub mod player;
 
-pub use note::{
-	moment_notes,
-	Note,
-};
+pub use note::{moment_notes, Note};
 pub type Notes = Vec<Vec<Note>>;
 
 pub enum Command {

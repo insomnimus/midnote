@@ -1,15 +1,7 @@
-use std::{
-	borrow::Cow,
-	error::Error,
-	fmt,
-	fs,
-};
+use std::{borrow::Cow, error::Error, fmt, fs};
 
 use crossterm::event::KeyCode;
-use serde::{
-	Deserialize,
-	Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use crate::Command;
 

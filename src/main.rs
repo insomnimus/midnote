@@ -1,41 +1,19 @@
 use std::{
 	error::Error,
 	fmt::Write as _Write,
-	io::{
-		stdout,
-		Write,
-	},
-	sync::mpsc::{
-		self,
-		Receiver,
-	},
+	io::{stdout, Write},
+	sync::mpsc::{self, Receiver},
 	thread,
 	time::Duration,
 };
 
 use crossterm::{
-	event::{
-		self,
-		Event,
-	},
-	style::{
-		Attribute,
-		Color,
-		Stylize,
-	},
-	terminal::{
-		disable_raw_mode,
-		enable_raw_mode,
-		Clear,
-		ClearType,
-	},
+	event::{self, Event},
+	style::{Attribute, Color, Stylize},
+	terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
 	ExecutableCommand,
 };
-use midnote::{
-	init::Args,
-	Note,
-	Response,
-};
+use midnote::{init::Args, Note, Response};
 
 const CLEAR: Clear = Clear(ClearType::All);
 
