@@ -27,7 +27,7 @@ On MacOS, [Fluidsynth][] is available and it should work as good as it works on 
 You need a working [Rust][] installation along with the rust package manager, `cargo` (`cargo` ships with the rust toolchain).
 
 # Installation
-Pre-built binaries can be found on the [releases](/releases) page.
+Pre-built binaries can be found on the [releases](https://github.com/insomnimus/midnote/releases) page.
 
 # Building The Project
 
