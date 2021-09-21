@@ -23,8 +23,11 @@ I personally recommend [Fluidsynth][].
 
 On MacOS, [Fluidsynth][] is available and it should work as good as it works on *NIX systems.
 
-Finally, on all platforms you need a working [Rust][] installation along with
-the rust package manager, `cargo` (`cargo` ships with the rust toolchain).
+# Build Requirements
+You need a working [Rust][] installation along with the rust package manager, `cargo` (`cargo` ships with the rust toolchain).
+
+# Installation
+Pre-built binaries can be found on the [releases](/releases) page.
 
 # Building The Project
 
