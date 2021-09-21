@@ -1,7 +1,2 @@
 hard_tabs = true
-imports_layout = "vertical"
-imports_granularity = "crate"
-newline_style = "unix"
-group_imports = "StdExternalCrate"
 use_field_init_shorthand = true
-blank_lines_upper_bound = 1
