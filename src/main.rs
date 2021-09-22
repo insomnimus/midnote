@@ -1,6 +1,8 @@
 use std::{
 	error::Error,
+	fmt,
 	fmt::Write as _Write,
+	io,
 	io::{stdout, Write},
 	sync::mpsc::{self, Receiver},
 	thread,
@@ -29,7 +31,7 @@ fn run(
 		player.start(commands_recv);
 	});
 	start_display(response, config.colors);
-	print_clear(&config.keys.to_string(), false);
+	print(&config.keys).unwrap();
 
 	let keys = config.keys;
 
@@ -47,7 +49,7 @@ fn run(
 		if k == keys.exit {
 			break;
 		} else if k == keys.help {
-			print_clear(&keys.to_string(), false);
+			print(&keys).unwrap();
 		}
 	}
 
@@ -55,20 +57,17 @@ fn run(
 }
 
 fn print_notes(notes: &[Vec<Note>], colors: bool) {
-	let mut stdout = stdout();
-	let _ = stdout.execute(CLEAR);
 	if notes.is_empty() {
 		if colors {
 			let s = "---"
 				.with(Color::Grey)
 				.attribute(Attribute::Bold)
 				.on(Color::Black);
-			writeln!(&mut stdout, "{}", s)
+			print(&s)
 		} else {
-			writeln!(&mut stdout, "---")
+			print("---")
 		}
 		.unwrap();
-		let _ = stdout.flush();
 		return;
 	}
 
@@ -89,34 +88,29 @@ fn print_notes(notes: &[Vec<Note>], colors: bool) {
 			.with(Color::Cyan)
 			.attribute(Attribute::Bold)
 			.on(Color::Black);
-		write!(&mut stdout, "{}", s)
+		print(&s)
 	} else {
-		write!(&mut stdout, "{}", &buf)
+		print(&buf)
 	}
 	.unwrap();
-
-	let _ = stdout.flush();
 }
 
-fn print_clear(s: &str, colors: bool) {
-	let mut stdout = stdout();
-	let _ = stdout.execute(CLEAR);
+fn print_color(s: &str, colors: bool) {
 	if colors {
 		let s = s.on(Color::Black).with(Color::Yellow);
-		writeln!(&mut stdout, "{}", s)
+		print(&s)
 	} else {
-		writeln!(&mut stdout, "{}", s)
+		print(s)
 	}
 	.unwrap();
-	let _ = stdout.flush();
 }
 
 fn start_display(response: Receiver<Response>, colors: bool) {
 	thread::spawn(move || {
 		for resp in response {
 			match resp {
-				Response::StartOfTrack => print_clear("Start of track.", colors),
-				Response::EndOfTrack => print_clear("End of track.", colors),
+				Response::StartOfTrack => print_color("Start of track.", colors),
+				Response::EndOfTrack => print_color("End of track.", colors),
 				Response::Notes(notes) => {
 					// This sleep prevents the screen reader from glitching.
 					thread::sleep(Duration::from_millis(50));
@@ -125,6 +119,25 @@ fn start_display(response: Receiver<Response>, colors: bool) {
 			};
 		}
 	});
+}
+
+fn print<S: fmt::Display>(s: S) -> Result<(), Box<io::Error>> {
+	let mut stdout = stdout();
+	stdout.execute(CLEAR)?;
+	for (i, ln) in s
+		.to_string()
+		.lines()
+		.filter(|s| !s.is_empty() && s != &"\n")
+		.enumerate()
+	{
+		if i > 0 {
+			write!(&mut stdout, "\n")?;
+		}
+		write!(&mut stdout, "{}\r", ln)?;
+		stdout.flush()?;
+	}
+
+	Ok(())
 }
 
 fn main() {
