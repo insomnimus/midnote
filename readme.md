@@ -25,6 +25,13 @@ On MacOS, [Fluidsynth][] is available and it should work as good as it works on 
 
 # Build Requirements
 You need a working [Rust][] installation along with the rust package manager, `cargo` (`cargo` ships with the rust toolchain).
+On *nix, you also need alsa development libraries:
+```sh
+# debian / ubuntu
+apt install libasound2-dev
+# fedora / sentos
+dnf install alsa-lib-devel
+```
 
 # Installation
 Pre-built binaries can be found on the [releases](https://github.com/insomnimus/midnote/releases) page.
