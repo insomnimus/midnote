@@ -1,8 +1,7 @@
 use std::{
 	error::Error,
 	fmt::{self, Write as _Write},
-	io,
-	io::{stdout, Write},
+	io::{self, stdout, Write},
 	sync::mpsc::{self, Receiver},
 	thread,
 	time::Duration,

@@ -350,7 +350,7 @@ dependencies = [
 
 [[package]]
 name = "midnote"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "clap",
  "crossterm",
