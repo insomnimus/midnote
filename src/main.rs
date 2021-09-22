@@ -1,7 +1,6 @@
 use std::{
 	error::Error,
-	fmt,
-	fmt::Write as _Write,
+	fmt::{self, Write as _Write},
 	io,
 	io::{stdout, Write},
 	sync::mpsc::{self, Receiver},
@@ -131,7 +130,7 @@ fn print<S: fmt::Display>(s: S) -> Result<(), Box<io::Error>> {
 		.enumerate()
 	{
 		if i > 0 {
-			write!(&mut stdout, "\n")?;
+			writeln!(&mut stdout)?;
 		}
 		write!(&mut stdout, "{}\r", ln)?;
 		stdout.flush()?;
