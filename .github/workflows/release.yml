@@ -51,12 +51,12 @@
         {
           "name": "Prepare",
           "if": "matrix.os != 'windows-latest'",
-          "run": "cd target/release\nstrip midnote || true\ntar czvf ../../${{ matrix.name }} midnote\ncd -\n"
+          "run": "cd target/${{ matrix.target }}/release\nstrip midnote || true\ntar czvf ../../../${{ matrix.name }} midnote\ncd -\n"
         },
         {
           "if": "matrix.os == 'windows-latest'",
           "name": "Prepare",
-          "run": "cd target/release\n7z a ../../${{ matrix.name }} midnote.exe\ncd -\n"
+          "run": "cd target/${{ matrix.target }}/release\n7z a ../../../${{ matrix.name }} midnote.exe\ncd -\n"
         },
         {
           "name": "Deploy | Upload artifacts",
