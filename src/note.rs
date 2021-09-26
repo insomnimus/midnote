@@ -7,7 +7,7 @@ pub const NOTES: [&str; 12] = [
 	"C", "C#", "D", "E♭", "E", "F", "F#", "G", "A♭", "A", "B♭", "B",
 ];
 
-#[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Note {
 	offset: u8,
 	octave: u8,
@@ -34,6 +34,10 @@ pub fn moment_notes(moment: &Moment) -> Option<Vec<Note>> {
 			let mut buf = Vec::new();
 			for e in events {
 				if let Event::Midi(m) = e {
+					if m.channel == 9 {
+						// Drum channel, skip.
+						continue;
+					}
 					match m.message {
 						MidiMessage::NoteOn { key, vel } if vel > 0 => {
 							let k: Note = u8::from(key).into();
