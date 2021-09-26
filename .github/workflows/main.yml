@@ -67,7 +67,7 @@
           "uses": "actions-rs/cargo@v1.0.3",
           "with": {
             "command": "clippy",
-            "args": "--locked --target ${{ matrix.target }}"
+            "args": "--target ${{ matrix.target }}"
           }
         },
         {
@@ -75,7 +75,7 @@
           "uses": "actions-rs/cargo@v1.0.3",
           "with": {
             "command": "test",
-            "args": "--locked --target ${{ matrix.target }}"
+            "args": "--target ${{ matrix.target }}"
           }
         }
       ]
@@ -154,7 +154,7 @@
           "uses": "actions-rs/cargo@v1.0.3",
           "with": {
             "command": "build",
-            "args": "--release --locked --target ${{ matrix.target }}"
+            "args": "--release --target ${{ matrix.target }}"
           }
         },
         {
