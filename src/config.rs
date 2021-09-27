@@ -1,7 +1,15 @@
-use std::{borrow::Cow, error::Error, fmt, fs};
+use std::{
+	borrow::Cow,
+	error::Error,
+	fmt,
+	fs,
+};
 
 use crossterm::event::KeyCode;
-use serde::{Deserialize, Serialize};
+use serde::{
+	Deserialize,
+	Serialize,
+};
 
 use crate::Command;
 
@@ -12,15 +20,28 @@ pub struct Config {
 	pub keys: Keys,
 }
 
+impl Default for Config {
+	fn default() -> Self {
+		Self {
+			colors: true,
+			keys: Keys::default(),
+		}
+	}
+}
+
 #[derive(Serialize, Deserialize, Copy, Clone)]
 #[serde(default)]
 pub struct Keys {
 	pub next: KeyCode,
 	pub prev: KeyCode,
+	pub transpose_up: KeyCode,
+	pub transpose_down: KeyCode,
+	pub reset: KeyCode,
 	pub replay: KeyCode,
 	pub solo: KeyCode,
 	pub silence: KeyCode,
 	pub rewind: KeyCode,
+	pub info: KeyCode,
 	pub exit: KeyCode,
 	pub help: KeyCode,
 }
@@ -30,21 +51,16 @@ impl Default for Keys {
 		Self {
 			next: KeyCode::Right,
 			prev: KeyCode::Left,
+			transpose_up: KeyCode::Up,
+			transpose_down: KeyCode::Down,
+			reset: KeyCode::Char('x'),
 			silence: KeyCode::Char(' '),
 			exit: KeyCode::Esc,
 			solo: KeyCode::Char('s'),
 			rewind: KeyCode::Char('p'),
 			replay: KeyCode::Char('r'),
+			info: KeyCode::Char('i'),
 			help: KeyCode::Char('h'),
-		}
-	}
-}
-
-impl Default for Config {
-	fn default() -> Self {
-		Self {
-			colors: true,
-			keys: Keys::default(),
 		}
 	}
 }
@@ -62,10 +78,14 @@ impl fmt::Display for Keys {
 		let keys = &[
 			("next", self.next),
 			("previous", self.prev),
+			("transpose up", self.transpose_up),
+			("transpose down", self.transpose_down),
+			("reset transposition", self.reset),
 			("replay", self.replay),
 			("solo", self.solo),
 			("rewind", self.rewind),
 			("silence", self.silence),
+			("info", self.info),
 			("help", self.help),
 			("exit", self.exit),
 		];
@@ -118,6 +138,12 @@ impl Keys {
 			Command::Next
 		} else if k == self.prev {
 			Command::Prev
+		} else if k == self.transpose_up {
+			Command::Transpose(1)
+		} else if k == self.transpose_down {
+			Command::Transpose(-1)
+		} else if k == self.reset {
+			Command::Transpose(0)
 		} else if k == self.replay {
 			Command::Replay
 		} else if k == self.silence {
@@ -126,6 +152,8 @@ impl Keys {
 			Command::Solo
 		} else if k == self.rewind {
 			Command::RewindStart
+		} else if k == self.info {
+			Command::Info
 		} else {
 			return None;
 		})

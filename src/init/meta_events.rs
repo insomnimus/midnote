@@ -1,4 +1,8 @@
-use nodi::{Event, Moment, Sheet};
+use nodi::{
+	Event,
+	Moment,
+	Sheet,
+};
 
 pub fn extract_meta_events(sheet: &Sheet) -> Sheet {
 	let mut sheet = sheet.clone();

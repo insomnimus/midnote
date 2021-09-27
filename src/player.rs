@@ -1,15 +1,32 @@
 use std::{
 	sync::{
-		mpsc::{self, Receiver, Sender, SyncSender},
-		Arc, Mutex,
+		mpsc::{
+			self,
+			Receiver,
+			Sender,
+			SyncSender,
+		},
+		Arc,
+		Mutex,
 	},
 	thread,
 };
 
 use midir::MidiOutputConnection;
-use nodi::{Event, Moment, Ticker, Timer};
+use nodi::{
+	Event,
+	Moment,
+	Ticker,
+	Timer,
+};
 
-use crate::{bar::Bar, note::moment_notes, Command, Response};
+use crate::{
+	bar::Bar,
+	note::moment_notes,
+	Command,
+	Response,
+	State,
+};
 
 type Bars = Vec<Bar>;
 
@@ -24,6 +41,7 @@ pub struct Player {
 	solo: Arc<Bars>,
 	solo_on: bool,
 	n_bars: usize,
+	transpose: i8,
 }
 
 impl Player {
@@ -51,6 +69,7 @@ impl Player {
 			solo,
 			solo_on: false,
 			last_forward: true,
+			transpose: 0,
 		}
 	}
 
@@ -85,6 +104,11 @@ impl Player {
 					last_played = 0;
 				}
 				Command::Solo => self.solo_on = !self.solo_on,
+				Command::Transpose(n) => {
+					self.transpose(n);
+					self.state(last_played);
+				}
+				Command::Info => self.state(last_played),
 			};
 		}
 	}
@@ -135,7 +159,7 @@ impl Player {
 		let notes = self.solo[n]
 			.moments
 			.iter()
-			.map(|m| moment_notes(m))
+			.map(|m| moment_notes(m, self.transpose))
 			.flatten()
 			.collect::<Vec<_>>();
 		self.output.send(Response::Notes(notes)).unwrap();
@@ -145,6 +169,7 @@ impl Player {
 		} else {
 			Arc::clone(&self.all)
 		};
+		let transpose = self.transpose;
 
 		thread::spawn(move || {
 			let mut buf = Vec::new();
@@ -153,7 +178,7 @@ impl Player {
 			let mut con = con.lock().unwrap();
 			let mut timer = bars[n].timer;
 
-			for moment in bars[n].trim_moments() {
+			for moment in bars[n].transposed_moments(transpose).iter() {
 				if cancel.try_recv().is_ok() {
 					return;
 				}
@@ -180,5 +205,24 @@ impl Player {
 
 			// output.send(Response::Notes(played_notes)).unwrap();
 		});
+	}
+
+	fn transpose(&mut self, n: i8) {
+		if n == 0 {
+			self.transpose = 0;
+		} else {
+			self.transpose = (self.transpose + n) % 12;
+		}
+	}
+
+	fn state(&self, index: usize) {
+		self.output
+			.send(Response::State(State {
+				transposition: self.transpose,
+				index,
+				solo: self.solo_on,
+				length: self.solo.len(),
+			}))
+			.unwrap();
 	}
 }

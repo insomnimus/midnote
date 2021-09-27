@@ -1,7 +1,10 @@
 use std::fmt;
 
 use midly::MidiMessage;
-use nodi::{Event, Moment};
+use nodi::{
+	Event,
+	Moment,
+};
 
 pub const NOTES: [&str; 12] = [
 	"C", "C#", "D", "E♭", "E", "F", "F#", "G", "A♭", "A", "B♭", "B",
@@ -27,7 +30,7 @@ impl fmt::Display for Note {
 	}
 }
 
-pub fn moment_notes(moment: &Moment) -> Option<Vec<Note>> {
+pub fn moment_notes(moment: &Moment, shift: i8) -> Option<Vec<Note>> {
 	match &moment {
 		Moment::Empty => None,
 		Moment::Events(events) => {
@@ -40,9 +43,12 @@ pub fn moment_notes(moment: &Moment) -> Option<Vec<Note>> {
 					}
 					match m.message {
 						MidiMessage::NoteOn { key, vel } if vel > 0 => {
-							let k: Note = u8::from(key).into();
-							if !buf.contains(&k) {
-								buf.push(k);
+							let key = key.as_int() as i32 + shift as i32;
+							if (0..=127).contains(&key) {
+								let k = Note::from(key as u8);
+								if !buf.contains(&k) {
+									buf.push(k);
+								}
 							}
 						}
 						_ => {}

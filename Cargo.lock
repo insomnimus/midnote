@@ -350,7 +350,7 @@ dependencies = [
 
 [[package]]
 name = "midnote"
-version = "0.7.8"
+version = "0.8.0"
 dependencies = [
  "clap",
  "crossterm",
@@ -398,9 +398,9 @@ dependencies = [
 
 [[package]]
 name = "nodi"
-version = "0.6.3"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e587b39a881dc9f9afe0582e6bc32bafe1dd41076052bd6ad592d68052c99ac9"
+checksum = "9622aca4759f668d66497043a03f96a409f45d101c116ad96658bc4c4cd53f44"
 dependencies = [
  "log",
  "midly",
