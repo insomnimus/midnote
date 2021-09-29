@@ -1,32 +1,15 @@
 use std::{
 	sync::{
-		mpsc::{
-			self,
-			Receiver,
-			Sender,
-			SyncSender,
-		},
-		Arc,
-		Mutex,
+		mpsc::{self, Receiver, Sender, SyncSender},
+		Arc, Mutex,
 	},
 	thread,
 };
 
 use midir::MidiOutputConnection;
-use nodi::{
-	Event,
-	Moment,
-	Ticker,
-	Timer,
-};
+use nodi::{Event, Moment, Ticker, Timer};
 
-use crate::{
-	bar::Bar,
-	note::moment_notes,
-	Command,
-	Response,
-	State,
-};
+use crate::{bar::Bar, note::moment_notes, Command, Response, State};
 
 type Bars = Vec<Bar>;
 

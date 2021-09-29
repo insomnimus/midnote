@@ -1,9 +1,4 @@
-use clap::{
-	crate_version,
-	App,
-	AppSettings,
-	Arg,
-};
+use clap::{crate_version, App, AppSettings, Arg};
 
 const FOOTER: &str =
 	"For the configuration file syntax, please visit https://github.com/insomnimus/midnote";

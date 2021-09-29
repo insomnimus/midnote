@@ -4,27 +4,14 @@ mod meta_events;
 use std::{
 	error::Error,
 	fs,
-	sync::mpsc::{
-		self,
-		Receiver,
-	},
+	sync::mpsc::{self, Receiver},
 };
 
 use meta_events::extract_meta_events;
-use midly::{
-	Format,
-	Smf,
-	Timing,
-};
+use midly::{Format, Smf, Timing};
 use nodi::Sheet;
 
-use crate::{
-	app,
-	bar,
-	config::Config,
-	player::Player,
-	Response,
-};
+use crate::{app, bar, config::Config, player::Player, Response};
 
 pub struct Args {
 	pub config: Config,

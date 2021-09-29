@@ -1,22 +1,11 @@
 use std::{
 	error::Error,
 	fmt,
-	io::{
-		self,
-		BufRead,
-		Write,
-	},
+	io::{self, BufRead, Write},
 };
 
-use midir::{
-	MidiOutput,
-	MidiOutputConnection,
-};
-use midly::{
-	MetaMessage,
-	TrackEvent,
-	TrackEventKind,
-};
+use midir::{MidiOutput, MidiOutputConnection};
+use midly::{MetaMessage, TrackEvent, TrackEventKind};
 use nodi::Sheet;
 
 pub fn list_devices() -> Result<(), Box<dyn Error>> {

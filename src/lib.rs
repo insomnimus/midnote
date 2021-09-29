@@ -7,10 +7,7 @@ pub mod player;
 
 use std::fmt;
 
-pub use note::{
-	moment_notes,
-	Note,
-};
+pub use note::{moment_notes, Note};
 pub type Notes = Vec<Vec<Note>>;
 
 pub struct State {
