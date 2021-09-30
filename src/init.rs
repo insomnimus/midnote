@@ -62,7 +62,7 @@ impl Args {
 			}
 		};
 
-		let player = Player::new(con, sender, bar::bars(all, tpb), bar::bars(sheet, tpb), tpb);
+		let player = Player::new(con, sender, bar::bars(all, tpb), bar::bars(sheet, tpb));
 
 		Ok(Self {
 			player,

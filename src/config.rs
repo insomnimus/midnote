@@ -28,6 +28,8 @@ pub struct Keys {
 	pub prev: KeyCode,
 	pub transpose_up: KeyCode,
 	pub transpose_down: KeyCode,
+	pub speed_up: KeyCode,
+	pub speed_down: KeyCode,
 	pub reset: KeyCode,
 	pub replay: KeyCode,
 	pub solo: KeyCode,
@@ -45,6 +47,8 @@ impl Default for Keys {
 			prev: KeyCode::Left,
 			transpose_up: KeyCode::Up,
 			transpose_down: KeyCode::Down,
+			speed_up: KeyCode::Char('2'),
+			speed_down: KeyCode::Char('1'),
 			reset: KeyCode::Char('x'),
 			silence: KeyCode::Char(' '),
 			exit: KeyCode::Esc,
@@ -72,6 +76,8 @@ impl fmt::Display for Keys {
 			("previous", self.prev),
 			("transpose up", self.transpose_up),
 			("transpose down", self.transpose_down),
+			("speed up", self.speed_up),
+			("speed down", self.speed_down),
 			("reset transposition", self.reset),
 			("replay", self.replay),
 			("solo", self.solo),
@@ -143,9 +149,13 @@ impl Keys {
 		} else if k == self.solo {
 			Command::Solo
 		} else if k == self.rewind {
-			Command::RewindStart
+			Command::Reset
 		} else if k == self.info {
 			Command::Info
+		} else if k == self.speed_up {
+			Command::Speed(0.05)
+		} else if k == self.speed_down {
+			Command::Speed(-0.05)
 		} else {
 			return None;
 		})

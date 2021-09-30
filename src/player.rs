@@ -7,7 +7,7 @@ use std::{
 };
 
 use midir::MidiOutputConnection;
-use nodi::{Event, Moment, Ticker, Timer};
+use nodi::{Event, Moment, Timer};
 
 use crate::{bar::Bar, note::moment_notes, Command, Response, State};
 
@@ -17,25 +17,17 @@ pub struct Player {
 	output: Sender<Response>,
 	con: Arc<Mutex<MidiOutputConnection>>,
 	index: usize,
-	tpb: u16,
-	timer: Arc<Mutex<Ticker>>,
 	last_forward: bool,
 	all: Arc<Bars>,
 	solo: Arc<Bars>,
 	solo_on: bool,
 	n_bars: usize,
 	transpose: i8,
+	speed: f32,
 }
 
 impl Player {
-	pub fn new(
-		con: MidiOutputConnection,
-		output: Sender<Response>,
-		all: Bars,
-		solo: Bars,
-		tpb: u16,
-	) -> Self {
-		let timer = Arc::new(Mutex::new(Ticker::new(tpb as u16)));
+	pub fn new(con: MidiOutputConnection, output: Sender<Response>, all: Bars, solo: Bars) -> Self {
 		let con = Arc::new(Mutex::new(con));
 		let n_bars = all.len();
 
@@ -45,14 +37,13 @@ impl Player {
 			n_bars,
 			con,
 			output,
-			timer,
 			index: 0,
-			tpb,
 			all,
 			solo,
 			solo_on: false,
 			last_forward: true,
 			transpose: 0,
+			speed: 1.0,
 		}
 	}
 
@@ -65,6 +56,7 @@ impl Player {
 			}
 			let (cancel_send, cancel) = mpsc::sync_channel(0);
 			last_sender = Some(cancel_send);
+
 			match c {
 				Command::Next => {
 					if let Some(n) = self.play_next(cancel) {
@@ -82,8 +74,8 @@ impl Player {
 				}
 				Command::Replay => self.play(last_played, cancel),
 				Command::Silence => self.silence(),
-				Command::RewindStart => {
-					self.rewind_start();
+				Command::Reset => {
+					self.reset();
 					last_played = 0;
 				}
 				Command::Solo => self.solo_on = !self.solo_on,
@@ -92,6 +84,10 @@ impl Player {
 					self.state(last_played);
 				}
 				Command::Info => self.state(last_played),
+				Command::Speed(f) => {
+					self.change_speed(f);
+					self.state(last_played);
+				}
 			};
 		}
 	}
@@ -124,10 +120,10 @@ impl Player {
 		Some(self.index)
 	}
 
-	fn rewind_start(&mut self) {
-		*self.timer.lock().unwrap() = Ticker::new(self.tpb as u16);
+	fn reset(&mut self) {
 		self.index = 0;
 		self.last_forward = true;
+		self.speed = 1.0;
 	}
 
 	fn silence(&self) {
@@ -152,12 +148,14 @@ impl Player {
 		} else {
 			Arc::clone(&self.all)
 		};
+
+		let speed = self.speed;
 		let transpose = self.transpose;
 
 		thread::spawn(move || {
 			let mut buf = Vec::new();
 
-			let mut empty_counter = 0_u32;
+			let mut counter = 0_u32;
 			let mut con = con.lock().unwrap();
 			let mut timer = bars[n].timer;
 
@@ -167,9 +165,12 @@ impl Player {
 				}
 
 				match moment {
-					Moment::Events(events) => {
-						timer.sleep(empty_counter);
-						empty_counter = 0;
+					Moment::Events(events) if !events.is_empty() => {
+						let dur = timer.sleep_duration(counter).div_f64(speed as f64);
+						if !dur.is_zero() {
+							thread::sleep(dur);
+						}
+						counter = 0;
 						for event in events {
 							match event {
 								Event::Tempo(val) => timer.change_tempo(*val),
@@ -182,11 +183,10 @@ impl Player {
 							};
 						}
 					}
-					Moment::Empty => empty_counter += 1,
+					_ => (),
 				};
+				counter += 1;
 			}
-
-			// output.send(Response::Notes(played_notes)).unwrap();
 		});
 	}
 
@@ -205,7 +205,17 @@ impl Player {
 				index,
 				solo: self.solo_on,
 				length: self.solo.len(),
+				speed: self.speed,
 			}))
 			.unwrap();
+	}
+
+	fn change_speed(&mut self, f: f32) {
+		let f = f + self.speed;
+		if f < 0.1 {
+			self.speed = 0.1;
+		} else {
+			self.speed = f;
+		}
 	}
 }

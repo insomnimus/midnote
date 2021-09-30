@@ -15,6 +15,7 @@ pub struct State {
 	pub index: usize,
 	pub length: usize,
 	pub solo: bool,
+	pub speed: f32,
 }
 
 pub enum Command {
@@ -22,11 +23,13 @@ pub enum Command {
 	Prev,
 	Replay,
 	Silence,
-	RewindStart,
+	Reset,
 	Solo,
 	/// Transpose(0) will reset it instead
 	Transpose(i8),
 	Info,
+	/// Changes the speed by the value given.
+	Speed(f32),
 }
 
 pub enum Response {
@@ -41,11 +44,12 @@ impl fmt::Display for State {
 		write!(
 			f,
 			"{index} / {length}
-transposition = {trans:+} | solo = {solo}",
+transposition = {trans:+} | solo = {solo} | speed = {speed}%",
 			index = self.index,
 			length = self.length,
 			trans = self.transposition,
 			solo = if self.solo { "on" } else { "off" },
+			speed = self.speed * 100.0,
 		)
 	}
 }
