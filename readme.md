@@ -10,6 +10,12 @@ As a blind musician myself, I found it very difficult to learn new songs on my o
 I've "seen" [Lunar Tabs][], and wanted to make something similar but for MIDI files
 since good guitarpro5 tabs are not free but you can download many great MIDI files.
 
+# Feature Flags
+You can choose a different audio backend using one of the following feature flags:
+
+-	`--features=jack`: Use the Jack backend.
+-	`--features=winrt`: Use the WinRT backend.
+
 # Prerequisites
  
 Midnote works by reading a MIDI file and parsing the messages within.
@@ -33,18 +39,26 @@ apt install libasound2-dev
 dnf install alsa-lib-devel
 ```
 
+If you want to use the Jack backend, you also need the jack development libraries:
+```sh
+# Debian and derivatives
+apt install libjack-jackd2-dev
+# RHEL and derivatives
+dnf install jack-audio-connection-kit-devel
+```
+
 # Installation
 Pre-built binaries can be found on the [releases](https://github.com/insomnimus/midnote/releases) page.
 
 # Building The Project
-
-To build the project, you only need a working rust environment and git:
 
 ```sh
 git clone https://github.com/insomnimus/midnote
 cd midnote
 git checkout main
 cargo install --path . --locked
+# To use the jack or winrt backends, do the following:
+cargo install --path . --locked --features=jack # or winrt
 ```
 
 # Usage
