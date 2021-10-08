@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use nodi::{Event, Moment, Sheet, Ticker, Timer};
+use nodi::{timers::Ticker, Event, Moment, Sheet, Timer};
 
 pub struct Bar {
 	pub timer: Ticker,
