@@ -3,6 +3,11 @@ name = "midnote"
 description = "A terminal application for viewing notes in a MIDI track, with audio."
 version = "0.10.1"
 edition = "2018"
+license = "MIT"
+authors = ["Taylan Gökkaya <insomnimus.dev@gmail.com>"]
+repository = "https://github.com/insomnimus/midnote"
+categories = ["accessibility", "multimedia::audio", "multimedia::encoding"]
+keywords = ["midi", "music", "smf", "accessibility"]
 
 [dependencies]
 clap = "3.0.0-beta.4"
