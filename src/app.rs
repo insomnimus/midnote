@@ -1,4 +1,4 @@
-use clap::{crate_version, App, AppSettings, Arg};
+use clap::{crate_version, App, Arg};
 
 const FOOTER: &str =
 	"For the configuration file syntax, please visit https://github.com/insomnimus/midnote";
@@ -7,7 +7,6 @@ pub fn new() -> App<'static> {
 	let app = App::new("midnote")
 		.about("View and play notes in a MIDI track.")
 		.after_long_help(FOOTER)
-		.setting(AppSettings::UnifiedHelpMessage)
 		.version(crate_version!());
 
 	let config = Arg::new("config")
