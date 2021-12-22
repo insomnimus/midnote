@@ -138,8 +138,7 @@ impl Player {
 		let notes = self.solo[n]
 			.moments
 			.iter()
-			.map(|m| moment_notes(m, self.transpose))
-			.flatten()
+			.filter_map(|m| moment_notes(m, self.transpose))
 			.collect::<Vec<_>>();
 		self.output.send(Response::Notes(notes)).unwrap();
 

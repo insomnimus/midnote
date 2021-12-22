@@ -1,48 +1,29 @@
-use clap::{crate_version, App, Arg};
+use clap::{arg, crate_version, App, Arg};
 
 const FOOTER: &str =
 	"For the configuration file syntax, please visit https://github.com/insomnimus/midnote";
 
 pub fn new() -> App<'static> {
-	let app = App::new("midnote")
+	App::new("midnote")
 		.about("View and play notes in a MIDI track.")
 		.after_long_help(FOOTER)
-		.version(crate_version!());
-
-	let config = Arg::new("config")
-		.short('c')
-		.long("config")
-		.about("Path of a config file (*.json).")
-		.takes_value(true);
-
-	let no_color = Arg::new("no-color")
-		.short('C')
-		.long("no-color")
-		.about("Do not use colored output.");
-
-	let list = Arg::new("list")
-		.short('l')
-		.long("list")
-		.about("List available midi output devices.");
-
-	let file = Arg::new("file")
-		.about("The midi file to inspect.")
-		.required_unless_present("list");
-
-	let device = Arg::new("device")
-		.short('d')
-		.long("device")
-		.about("The midi device for audio playback.")
-		.default_value("0")
-		.validator(|s| {
-			s.parse::<usize>()
-				.map(|_| {})
-				.map_err(|_| String::from("the value must be a non-negative integer"))
-		});
-
-	app.arg(no_color)
-		.arg(config)
-		.arg(list)
-		.arg(device)
-		.arg(file)
+		.version(crate_version!())
+		.args(&[
+			arg!(-c --config [PATH] "Path to a config file (*.json)."),
+			Arg::new("no-color")
+				.short('C')
+				.long("no-color")
+				.help("Do not use colored output."),
+			arg!(-l --list "List available MIDI output devices."),
+			arg!(-d --device <NO> "The MIDI output device.")
+				.default_value("0")
+				.validator(|s| {
+					s.parse::<usize>().map(|_| {}).map_err(|_| {
+						String::from("the value must be an integer greater than or equal to 0")
+					})
+				}),
+			Arg::new("file")
+				.help("The midi file to inspect.")
+				.required_unless_present("list"),
+		])
 }
