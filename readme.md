@@ -16,8 +16,7 @@ You can choose a different audio backend using one of the following feature flag
 -	`--features=jack`: Use the Jack backend.
 -	`--features=winrt`: Use the WinRT backend.
 
-# Prerequisites
- 
+# Prerequisites 
 Midnote works by reading a MIDI file and parsing the messages within.
 The display requires no MIDI device (software or hardware) but you need one for the playback.
  
@@ -48,10 +47,23 @@ dnf install jack-audio-connection-kit-devel
 ```
 
 # Installation
+## Windows: With Scoop
+First add [my bucket](https://github.com/insomnimus/scoop-bucket) to scoop:
+
+`scoop bucket add insomnia https://github.com/inssomnimus/scoop-bucket`
+
+Update scoop:
+
+`scoop update`
+
+Install the app:
+
+`scoop install midnote`
+
+## Download a pre-built binary
 Pre-built binaries can be found on the [releases](https://github.com/insomnimus/midnote/releases) page.
 
-# Building The Project
-
+## BYOB: Build Your Own Binary
 ```sh
 git clone https://github.com/insomnimus/midnote
 cd midnote
