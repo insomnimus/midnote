@@ -10,11 +10,11 @@ categories = ["accessibility", "multimedia::audio", "multimedia::encoding"]
 keywords = ["midi", "music", "smf", "accessibility"]
 
 [dependencies]
-clap = { version = "3.1.6", features = ["cargo", "unicode", "wrap_help"] }
-crossterm = { version = "0.23.0", features = ["serde"] }
+clap = { version = "3.1.8", features = ["cargo", "unicode", "wrap_help"] }
+crossterm = { version = "0.23.1", features = ["serde"] }
 midir = "0.7.0"
 midly = "0.5.2"
-nodi = { version = "0.13.2", optional = true, features = ["hybrid-sleep"] }
+nodi = { version = "0.14.0", optional = true, features = ["hybrid-sleep"] }
 serde = { version = "1.0.136", features = ["derive"] }
 serde_json = "1.0.79"
 
