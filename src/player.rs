@@ -9,7 +9,11 @@ use std::{
 use midir::MidiOutputConnection;
 use nodi::{Event, Moment, Timer};
 
-use crate::{bar::Bar, note::moment_notes, Command, Response, State};
+use crate::{
+	bar::Bar,
+	note::{self, moment_notes},
+	Command, Response, State,
+};
 
 type Bars = Vec<Bar>;
 
@@ -87,6 +91,9 @@ impl Player {
 				Command::Speed(f) => {
 					self.change_speed(f);
 					self.state(last_played);
+				}
+				Command::NoteStyle => {
+					note::toggle_style();
 				}
 			};
 		}

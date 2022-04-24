@@ -30,6 +30,7 @@ pub enum Command {
 	Info,
 	/// Changes the speed by the value given.
 	Speed(f32),
+	NoteStyle,
 }
 
 pub enum Response {

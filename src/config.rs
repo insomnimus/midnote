@@ -36,6 +36,7 @@ pub struct Keys {
 	pub silence: KeyCode,
 	pub rewind: KeyCode,
 	pub info: KeyCode,
+	pub note_style: KeyCode,
 	pub exit: KeyCode,
 	pub help: KeyCode,
 }
@@ -56,6 +57,7 @@ impl Default for Keys {
 			rewind: KeyCode::Char('p'),
 			replay: KeyCode::Char('r'),
 			info: KeyCode::Char('i'),
+			note_style: KeyCode::Char('n'),
 			help: KeyCode::Char('h'),
 		}
 	}
@@ -84,6 +86,7 @@ impl fmt::Display for Keys {
 			("rewind", self.rewind),
 			("silence", self.silence),
 			("info", self.info),
+			("toggle note style", self.note_style),
 			("help", self.help),
 			("exit", self.exit),
 		];
@@ -152,6 +155,8 @@ impl Keys {
 			Command::Reset
 		} else if k == self.info {
 			Command::Info
+		} else if k == self.note_style {
+			Command::NoteStyle
 		} else if k == self.speed_up {
 			Command::Speed(0.05)
 		} else if k == self.speed_down {

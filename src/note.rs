@@ -1,10 +1,77 @@
 use std::fmt;
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use midly::MidiMessage;
 use nodi::{Event, Moment};
 
-pub const NOTES: [&str; 12] = [
-	"C", "C#", "D", "E♭", "E", "F", "F#", "G", "A♭", "A", "B♭", "B",
+static STYLE: AtomicU8 = AtomicU8::new(1);
+
+pub fn toggle_style() {
+	STYLE
+		.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| {
+			Some(n.wrapping_add(1) % (NoteStyle::VALUES.len() as u8))
+		})
+		.unwrap();
+}
+
+pub fn style() -> NoteStyle {
+	NoteStyle::VALUES[STYLE.load(Ordering::Relaxed) as usize]
+}
+
+struct NoteName {
+	abc: &'static str,
+	doremi: &'static str,
+}
+
+const NOTES: [NoteName; 12] = [
+	NoteName {
+		abc: "C",
+		doremi: "Do",
+	},
+	NoteName {
+		abc: "C#",
+		doremi: "Do#",
+	},
+	NoteName {
+		abc: "D",
+		doremi: "Re",
+	},
+	NoteName {
+		abc: "E♭",
+		doremi: "Mi♭",
+	},
+	NoteName {
+		abc: "E",
+		doremi: "Mi",
+	},
+	NoteName {
+		abc: "F",
+		doremi: "Fa",
+	},
+	NoteName {
+		abc: "F#",
+		doremi: "Fa#",
+	},
+	NoteName {
+		abc: "G",
+		doremi: "Sol",
+	},
+	NoteName {
+		abc: "A♭",
+		doremi: "La♭",
+	},
+	NoteName {
+		abc: "A",
+		doremi: "La",
+	},
+	NoteName {
+		abc: "B♭",
+		doremi: "Si♭",
+	},
+	NoteName {
+		abc: "B",
+		doremi: "Si",
+	},
 ];
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -23,7 +90,7 @@ impl From<u8> for Note {
 
 impl fmt::Display for Note {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}{}", NOTES[self.offset as usize], self.octave)
+		style().display_note(*self, f)
 	}
 }
 
@@ -58,6 +125,33 @@ pub fn moment_notes(moment: &Moment, shift: i8) -> Option<Vec<Note>> {
 			} else {
 				Some(buf)
 			}
+		}
+	}
+}
+
+#[derive(Copy, Clone)]
+pub enum NoteStyle {
+	/// A, B, C
+	Abc,
+	/// A3, B2, E7
+	AbcN,
+	/// Do, Re, Mi
+	Doremi,
+	/// Do 2, Re 5, Mi 7
+	DoremiN,
+}
+
+impl NoteStyle {
+	pub const VALUES: [Self; 4] = [Self::Abc, Self::AbcN, Self::Doremi, Self::DoremiN];
+
+	#[inline]
+	pub fn display_note(self, n: Note, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let display = &NOTES[n.offset as usize];
+		match self {
+			Self::Abc => f.write_str(display.abc),
+			Self::AbcN => write!(f, "{}{}", display.abc, n.octave),
+			Self::Doremi => f.write_str(display.doremi),
+			Self::DoremiN => write!(f, "{}{}", display.doremi, n.octave),
 		}
 	}
 }
